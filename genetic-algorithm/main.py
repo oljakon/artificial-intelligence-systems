@@ -64,9 +64,13 @@ if __name__ == '__main__':
     population = init_population(10)
     print(population)
     q = 0
+    generations = 0
     while q == 0:
         q = fitness(population)
         population = crossover(population, 0.6)
-        mutation(population, 2)
+        mutation(population, 1)
+        generations += 1
     print("Слово КОТ сгенерировано")
-    print("Размер текущей популяции: " + str(len(population)))
+    print("Размер текущей популяции: ", len(population))
+    print("Количество поколений: ", generations)
+
