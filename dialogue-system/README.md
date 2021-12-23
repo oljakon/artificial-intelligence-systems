@@ -43,3 +43,7 @@
 23. Покажи курс, который я еще не проходил
 24. Что такое машинное обучение
 25. Где работают аналитики данных
+
+## ER-диаграмма
+
+![ER](https://github.com/oljakon/artificial-intelligence-systems/blob/master/dialogue-system/doc/er.png)
