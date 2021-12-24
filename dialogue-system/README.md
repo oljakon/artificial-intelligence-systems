@@ -47,3 +47,8 @@
 ## ER-диаграмма
 
 ![ER](https://github.com/oljakon/artificial-intelligence-systems/blob/master/dialogue-system/doc/er.png)
+
+## Use-case диаграмма
+
+![UC](https://github.com/oljakon/artificial-intelligence-systems/blob/master/dialogue-system/doc/use-case.png)
+
