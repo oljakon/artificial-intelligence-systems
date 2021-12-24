@@ -1,6 +1,8 @@
 import pandas as pd
 import pymorphy2
-import re
+
+from parametric_search import parametric_search
+
 
 morph = pymorphy2.MorphAnalyzer()
 pd.set_option('display.max_columns', None)
@@ -25,10 +27,14 @@ selected_attributes = ''
 
 
 def parser(s):
-    phrase = re.sub(r'[^\w\s]', '', s.lower()).split()
+    phrase = s.lower().split()
     norm_phrase = list()
     for word in phrase:
-        norm_phrase.append(morph.parse(word)[0].normal_form)
+        try:
+            float(word)
+            norm_phrase.append(word)
+        except ValueError:
+            norm_phrase.append(morph.parse(word)[0].normal_form)
     return norm_phrase
 
 
@@ -46,6 +52,36 @@ def handle(phrase):
         print('\nДо встречи!')
         exit(0)
 
+    if len(set(phrase) & {'сфера'}) != 0:
+        print('\nТы можешь выбрать среди следующих сфер деятельности: ')
+        if len(set(phrase) & {'профессиональный', 'профессия', 'работа'}) != 0:
+            s = pd.Series(data[data['Направление курсов'] == 'Професссиональные']['Сфера'].unique())
+            print(s)
+        elif len(set(phrase) & {'развивающий', 'развитие', 'саморазвитие'}) != 0:
+            s = pd.Series(data[data['Направление курсов'] == 'Развивающие']['Сфера'].unique())
+            print(s)
+        else:
+            print(pd.Series(data['Сфера'].unique()))
+        return
+
+    if len(set(phrase) & {'тема'}) != 0:
+        print('\nТы можешь выбрать среди следующих тем: ')
+        if len(set(phrase) & {'айти', 'it', 'программирование', 'программист', 'аналитик'}) != 0:
+            s = pd.Series(data[data['Сфера'] == 'IT-сфера']['Тема в сфере'].unique())
+            print(s)
+        elif len(set(phrase) & {'управление', 'менеджмент', 'менеджер', 'маркетинг', 'маркетолог'}) != 0:
+            s = pd.Series(data[data['Сфера'] == 'Управление']['Тема в сфере'].unique())
+            print(s)
+        if len(set(phrase) & {'речь', 'время', 'развитие'}) != 0:
+            s = pd.Series(data[data['Сфера'] == 'Личностное развитие']['Тема в сфере'].unique())
+            print(s)
+        elif len(set(phrase) & {'язык', 'переводить', 'переводчик', 'английский', 'немецкий', 'французский'}) != 0:
+            s = pd.Series(data[data['Сфера'] == 'Языковые курсы']['Тема в сфере'].unique())
+            print(s)
+        else:
+            print(pd.Series(data['Тема в сфере'].unique()))
+        return
+
     elif (len(set(phrase) & {'какой', 'вывести', 'показать', 'покажи', 'написать', 'перечислить', 'список'}) != 0
           and len(set(phrase) & {'всё', 'все', 'перечень', 'каталог', 'список'}) != 0
           and len(set(phrase) & {'курс'}) != 0):
@@ -54,6 +90,11 @@ def handle(phrase):
 
     elif len(set(phrase) & {'случайный', 'рандомный', 'любой'}) != 0:
         show_random()
+        return
+
+    elif (len(set(phrase) & {'порекомендовать', 'рекомендовать', 'рекомендация', 'предложить'}) != 0
+          and len(set(phrase) & {'курс'}) != 0):
+        parametric_search()
         return
 
     elif len(set(phrase) & {'программировать', 'программирование', 'программист'}) != 0:
@@ -297,7 +338,7 @@ def handle(phrase):
         more()
         return
 
-    elif (len(set(phrase) & {'какой', 'вывести', 'показать', 'покажи', 'написать', 'найти', 'ищу', 'подсказать'}) != 0
+    elif (len(set(phrase) & {'какой', 'вывести', 'показать', 'покажи', 'написать', 'найти', 'искать', 'подсказать'}) != 0
           and len(set(phrase) & {'курс'}) != 0) or scenarios >= 3:
         if scenarios == -1:
             scenarios = 3
@@ -353,7 +394,46 @@ def handle(phrase):
             step = 0
             scenarios = -1
 
-            searched = search_course(selected_attributes, phrase)
+            if selected_attributes == 'Год выпуска':
+                if len(phrase) == 1:
+                    try:
+                        year = int(phrase[0])
+                        searched = search_course_by_year(year)
+                    except ValueError:
+                        invalid()
+                        return
+                else:
+                    invalid()
+                    return
+
+            elif selected_attributes == 'Средний рейтинг':
+                if len(phrase) == 2:
+                    try:
+                        min_rating = float(phrase[0])
+                        max_rating = float(phrase[1])
+                        searched = search_course_by_rating(min_rating, max_rating)
+                    except ValueError:
+                        invalid()
+                        return
+                else:
+                    invalid()
+                    return
+
+            elif selected_attributes == 'Кол-во отзывов':
+                if len(phrase) == 2:
+                    try:
+                        min_com = int(phrase[0])
+                        max_com = int(phrase[1])
+                        searched = search_course_by_comments(min_com, max_com)
+                    except ValueError:
+                        invalid()
+                        return
+                else:
+                    invalid()
+                    return
+
+            else:
+                searched = search_course(selected_attributes, phrase)
             if searched.empty:
                 print('\nК сожалению, ничего не удалось найти')
             else:
@@ -361,7 +441,6 @@ def handle(phrase):
             more()
     else:
         not_found()
-        more()
 
 
 def search_by_name(phrase):
@@ -377,9 +456,7 @@ def search_by_name(phrase):
 
     phrase_list[0] = phrase_list[0].title()
     phrase = " ".join(phrase_list)
-
-    searched = data[data['Название'] == phrase]
-
+    searched = data[data['Название'].str.contains(phrase)]
     return searched
 
 
@@ -389,12 +466,33 @@ def search_course(column, phrase):
     return searched
 
 
+def search_course_by_year(year):
+    searched = data[data['Год выпуска'] == year]
+    return searched
+
+
+def search_course_by_rating(min_rating, max_rating):
+    searched = data.loc[(data['Средний рейтинг'] >= min_rating) & (data['Средний рейтинг'] <= max_rating)]
+    result = searched.sort_values(by='Средний рейтинг')
+    return result
+
+
+def search_course_by_comments(min_com, max_com):
+    searched = data.loc[(data['Кол-во отзывов'] >= min_com) & (data['Кол-во отзывов'] <= max_com)]
+    result = searched.sort_values(by='Кол-во отзывов')
+    return result
+
+
 def more():
     print('\nМогу ли я еще чем-нибудь помочь?')
 
 
 def not_found():
-    print('\nПрости, я не понимаю, что ты говоришь. Повтори еще раз')
+    print('\nПрости, я не понимаю, что ты говоришь, повтори еще раз, пожалуйста')
+
+
+def invalid():
+    print('\nКажется, ты ввел некорректные данные. Давай попробуем еще раз')
 
 
 def greeting():
@@ -441,6 +539,7 @@ def main():
     p = True
     while p:
         string = input('>>> ')
+        print(string)
         norm_phrase = parser(string)
         print(norm_phrase)
         handle(norm_phrase)
