@@ -267,7 +267,7 @@ def handle(phrase):
             print(searched)
         more()
 
-    elif len(set(phrase) & {'анализировать', 'аналитик', 'данные', 'машинное'}) != 0:
+    elif len(set(phrase) & {'анализировать', 'аналитик', 'данные', 'машинный'}) != 0:
         courses = find_theme('Аналитика')
         print('Курсы, связанные с аналитикой: ')
         print(courses)
