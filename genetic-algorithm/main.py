@@ -1,76 +1,151 @@
-from random import choice
-from random import random
-
-ALPHABET = "ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ"
+import math
+import random
 
 
-# Формирование начальной популяции
-def init_population(population_number):
-    p = []
-    for i in range(population_number):
-        gen = choice(ALPHABET) + choice(ALPHABET) + choice(ALPHABET)
-        p.append(gen)
-    return p
+alphabet = "йцукенгшщзхъфывапролджэячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ "
 
 
-# Оценивание популяции
-def fitness(current_population):
-    for i, chromosome in enumerate(current_population):
-        fit = 1
-        if chromosome[0] == "К":
-            fit += 1
-        if chromosome[1] == "О":
-            fit += 1
-        if chromosome[2] == "Т":
-            fit += 1
-        if fit == 4:
-            return 1
-    return 0
+def new_char():
+    return random.choice(alphabet)
 
 
-# Скрещивание
-def crossover(p, pc):
-    new_population = []
-    for i in range(len(p) - 1):
-        parent_1 = choice(p)
-        parent_2 = choice(p)
-        while parent_1 == parent_2:
-            parent_1 = choice(p)  # Формирование первого родителя
-            parent_2 = choice(p)  # Формирование второго родителя
-        if pc > random():
-            child_1 = parent_1[0] + parent_2[1] + parent_1[2]  # Формирование первого потомка
-            child_2 = parent_2[0] + parent_1[1] + parent_2[2]  # Формирование второго потомка
-            new_population.append(child_1)
-            new_population.append(child_2)
-        else:
-            new_population.append(parent_1)
-        i += 2
-    return new_population
+class DNA(object):
+    def __init__(self, num):
+        self.genes = []
+        self.fitness = 0.0
+        for i in range(num):
+            self.genes.append(new_char())
+
+    def get_phrase(self):
+        return ''.join(self.genes)
+
+    def calc_fitness(self, target):
+        score = 0.0
+        for i in range(len(self.genes)):
+            if self.genes[i] == target[i]:
+                score += 1
+        self.fitness = score / len(target)
+
+    def crossover(self, partner):
+        child = DNA(len(self.genes))
+        midpoint = random.randint(1, len(self.genes) - 1)
+        child.genes = self.genes[0:midpoint] + partner.genes[midpoint:len(self.genes)]
+        return child
+
+    def mutate(self, mutation_rate):
+        for i in range(len(self.genes)):
+            if random.random() < mutation_rate:
+                self.genes[i] = new_char()
 
 
-# Мутация
-def mutation(current_population, mutation_chance):
-    for i, chromosome in enumerate(current_population):
-        for j in range(len(chromosome)):
-            if random() < mutation_chance:
-                new_gen = choice(ALPHABET)
-                while current_population[i][j] == new_gen:
-                    new_gen = choice(ALPHABET)  # Если шанс на мутацию прошел, то меняем ген на любой другой
-                current_population[i] = current_population[i].replace(current_population[i][j], new_gen)
+class Population(object):
+    def __init__(self, p, m, num):
+        self.population = []
+        self.mating_pool = []
+        self.generations = 0
+        self.finished = False
+        self.target = p
+        self.mutation_rate = m
+        self.perfect_score = 1
+        self.best = ""
+
+        for x in range(num):
+            self.population.append(DNA(len(self.target)))
+        self.calc_fitness()
+
+    def calc_fitness(self):
+        for i in range(len(self.population)):
+            self.population[i].calc_fitness(self.target)
+
+    def natural_selection(self):
+        self.mating_pool = []
+        self.max_fitness = 0.0
+        for i in range(len(self.population)):
+            if self.population[i].fitness > self.max_fitness:
+                self.max_fitness = self.population[i].fitness
+
+        for x in range(len(self.population)):
+            fitness = self.population[x].fitness / self.max_fitness
+            n = math.floor(fitness * 100)
+            for i in range(n):
+                self.mating_pool.append(self.population[x])
+
+    def generate(self):
+        for i in range(len(self.population)):
+            partnerA = random.choice(self.mating_pool)
+            partnerB = random.choice(self.mating_pool)
+            child = partnerA.crossover(partnerB)
+            child.mutate(self.mutation_rate)
+            self.population[i] = child
+        self.generations += 1;
+
+    def get_best(self):
+        return self.best
+
+    def evaluate(self):
+        best_fitness = 0.0
+        index = 0
+        for x in range(len(self.population)):
+            if self.population[x].fitness > best_fitness:
+                index = x
+                best_fitness = self.population[x].fitness
+
+        self.best = self.population[index].get_phrase()
+        if best_fitness == self.perfect_score:
+            self.finished = True
+
+    def is_finished(self):
+        return self.finished
+
+    def get_generations(self):
+        return self.generations
+
+    def get_avg_fitness(self):
+        total = 0
+        for i in range(len(self.population)):
+            total = total + self.population[i].fitness
+        return total / len(self.population)
+
+    def all_phrases(self):
+        everything = ""
+        displayLimit = min(len(self.population), 50)
+        for i in range(displayLimit):
+            everything = everything + self.population[i].get_phrase() + "\n"
+        return everything
+
+
+def display_info():
+    statsText = 'Всего поколений: ' + str(population.get_generations()) + "\n"
+    statsText += 'Размер популяции: ' + str(population_max) + "\n"
+    statsText += 'Вероятность мутации: ' + str(mutation_rate * 100) + "%\n"
+    # print(population.all_phrases())
+    print(statsText)
+    print('Самое близкое значение: ' + population.get_best() + "\n")
 
 
 if __name__ == '__main__':
-    print("Начальная популяция")
-    population = init_population(10)
-    print(population)
-    q = 0
-    generations = 0
-    while q == 0:
-        q = fitness(population)
-        population = crossover(population, 0.6)
-        mutation(population, 1)
-        generations += 1
-    print("Слово КОТ сгенерировано")
-    print("Размер текущей популяции: ", len(population))
-    print("Количество поколений: ", generations)
+    target = 'Строка для генерации'
+    population_max = 200
+    mutation_rate = 0.01
 
+    population = Population(target, mutation_rate, population_max)
+
+    while True:
+        population.natural_selection()
+        population.generate()
+        population.calc_fitness()
+        population.evaluate()
+        display_info()
+        if population.is_finished():
+            break
+
+    # generations = 500
+    # for generation in range(generations+1):
+    #     print('Поколение: ' + str(generation))
+    #     population.natural_selection()
+    #     population.generate()
+    #     population.calc_fitness()
+    #     population.evaluate()
+    #     print('Самое близкое значение: ' + population.get_best() + '\n')
+    #     if population.is_finished():
+    #         break
