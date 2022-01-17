@@ -33,7 +33,7 @@ def find_similar_for_one_course(ds, dataset, metric, id):
 
 def find_similar_for_liked_courses(ds, data, metric, likes, dislikes):
     liked = []
-    if (len(likes) > 0):
+    if len(likes) > 0:
         for k in likes:
             liked.append(np.array(find_similar_for_one_course(ds, data, metric, k)['Различие']))
 
@@ -43,7 +43,6 @@ def find_similar_for_liked_courses(ds, data, metric, likes, dislikes):
         if len(likes) > 0:
             tt = np.sum([np.array(find_similar_for_one_course(ds, data, metric, k)['Различие']),
                          np.average(liked, 0)], 0)
-
         most_related = most_related.append(
             {"id": np.argmin(tt),
              "Характеристики": " ".join(list(map(str, data.values.tolist()[np.argmin(tt)]))),
@@ -58,11 +57,11 @@ def find_similar_for_liked_courses(ds, data, metric, likes, dislikes):
     # plt.show()
 
     most_related = most_related.drop_duplicates(subset='id', keep="last")
-    for k in likes:
-        most_related = most_related.drop(k)
-
+    idx = most_related.index
     for k in dislikes:
-        most_related = most_related.drop(k)
+        if k in idx:
+            most_related = most_related.drop(k)
+
     most_related = most_related.sort_values('Разница')
     print(most_related)
 
